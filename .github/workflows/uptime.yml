@@ -1,0 +1,40 @@
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A slow run must not overlap the next one: both would push down.txt.
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: bash check.sh
+
+      # Commit down.txt when it changed. GitHub turns off a public repo's schedule
+      # after 60 days with no commits, so also touch .keepalive once 30 days pass.
+      - name: Save state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if (( $(date +%s) - $(git log -1 --format=%ct) > 30*86400 )); then
+            date -u +%FT%TZ > .keepalive
+          fi
+          git add down.txt
+          [[ -f .keepalive ]] && git add .keepalive
+          git diff --cached --quiet || { git commit -qm "uptime: state" && git push -q; }
