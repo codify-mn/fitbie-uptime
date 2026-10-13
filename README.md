@@ -17,3 +17,4 @@ down or comes back — once per change, not every run. Public so Actions minutes
 - A public repo's schedule turns off after 60 days without commits; the workflow touches `.keepalive`
   every 30 days to prevent that. If it ever stops anyway: Actions → Uptime → Enable workflow.
 - Run it now: Actions → Uptime → Run workflow, or `gh workflow run uptime.yml -R codify-mn/fitbie-uptime`.
+  Add `-f test=true` to also post a test message (after setting or rotating the webhook).

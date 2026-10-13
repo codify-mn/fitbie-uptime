@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      test:
+        description: "Post a test message to Discord (checks the webhook secret)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -19,6 +24,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+
+      - name: Test Discord
+        if: inputs.test
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          [[ -n $DISCORD_WEBHOOK_URL ]] || { echo "::error::DISCORD_WEBHOOK_URL is empty"; exit 1; }
+          curl -sf --max-time 10 -H 'Content-Type: application/json' \
+            -d '{"content":"✅ fitbie-uptime is connected — alerts land here."}' "$DISCORD_WEBHOOK_URL" >/dev/null ||
+            { echo "::error::Discord rejected the post (bad webhook?)"; exit 1; }
 
       - name: Probe
         env:
